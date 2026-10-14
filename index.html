@@ -63,7 +63,8 @@ const eur=n=>isFinite(n)?n.toLocaleString('it-IT',{style:'currency',currency:'EU
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const ing=id=>S.ing.find(x=>x.id===id);
 const ivaOpt=v=>[4,10,22].map(x=>`<option value="${x}" ${(+v||10)===x?'selected':''}>${x}%</option>`).join('');
-const pkg=i=>i.price&&i.unit==='kg'?eur(+i.price):i.price&&i.unit==='conf'&&+i.conf?eur(i.price/(i.conf/1000)):'';
+const ivaM=i=>i.auto?1:1+(+i.iva||10)/100;
+const pkg=i=>i.price&&i.unit==='kg'?eur(+i.price*ivaM(i)):i.price&&i.unit==='conf'&&+i.conf?eur(i.price*ivaM(i)/(i.conf/1000)):'';
 const fm=n=>n.toLocaleString('it-IT',{minimumFractionDigits:4,maximumFractionDigits:4});
 const scP=i=>{if(i.unit==='pz')return 0;const sw=+i.sw||0,lg=+i.sg||(i.unit==='conf'&&+i.conf?+i.conf:1000);return lg>0&&sw>0?Math.min(sw/lg,.95)*100:0};
 const sf=i=>{const r=scP(i)/100;return r>0?1/(1-r):1};
@@ -80,13 +81,14 @@ if(S.ing.some(i=>i.auto&&!ids.has(i.id))){S.ing=S.ing.filter(i=>!i.auto||ids.has
 function autoRow(i){return`<tr style="background:var(--bg)"><td><b>${esc(i.name)}</b><div><span class="w">Sottoprodotto · Sugo</span></div></td><td>${i.price?eur(+i.price)+'/kg':'<span class="w">manca peso</span>'}</td><td class="mu">calcolato</td><td></td><td></td><td></td><td>${pkg(i)}</td><td>${i.price?fm(uc(i))+' €/g':'<span class="w">completa il sugo</span>'}</td><td class="mu">${used(i.id)} piatti</td><td><button class="b" onclick="openSugo('${i.sugo}')">Apri sugo</button></td></tr>`}
 function openSugo(id){view='piatti';pcat='sughi';open_=id;q='';R();window.scrollTo(0,0)}
 function pIng(){const miss=S.ing.filter(i=>!i.price).length;
-const rows=S.ing.filter(i=>(!q||i.name.toLowerCase().includes(q))&&(!onlyMiss||!i.price)).sort((a,b)=>a.name.localeCompare(b.name)).map(i=>i.auto?autoRow(i):`<tr><td><input value="${esc(i.name)}" onchange="ing('${i.id}').name=cap(this.value);R()"></td>
+const rows=S.ing.filter(i=>(!q||i.name.toLowerCase().includes(q))&&(!onlyMiss||!i.price)).sort((a,b)=>a.name.localeCompare(b.name)).map(i=>i.auto?autoRow(i):`<tr${i.fa&&!i.fa.ok?' style="background:#fff7e0"':''}><td><input value="${esc(i.name)}" onchange="ing('${i.id}').name=cap(this.value);R()">${faBox(i)}</td>
 <td><input type="number" step="0.01" min="0" value="${i.price??''}" placeholder="€" onchange="ing('${i.id}').price=this.value===''?null:+this.value;R()"></td>
 <td><select onchange="ing('${i.id}').unit=this.value;R()"><option value="kg" ${i.unit==='kg'?'selected':''}>€/kg</option><option value="pz" ${i.unit==='pz'?'selected':''}>€/pz</option><option value="conf" ${i.unit==='conf'?'selected':''}>€/confezione</option></select></td><td>${i.unit==='conf'?`<input type="number" min="1" value="${i.conf??''}" placeholder="g" onchange="ing('${i.id}').conf=this.value===''?null:+this.value;R()"> g`:''}</td>
 <td>${i.unit==='pz'?'<span class="mu">–</span>':`<input type="number" min="0" step="1" style="width:64px" value="${i.sw??''}" placeholder="g" title="Grammi di scarto" onchange="ing('${i.id}').sw=this.value===''?null:+this.value;R()"> g su <input type="number" min="1" step="1" style="width:70px" value="${i.sg??''}" placeholder="${i.unit==='conf'&&+i.conf?i.conf:1000}" title="Grammi lordi di riferimento (se vuoto: ${i.unit==='conf'&&+i.conf?'peso confezione':'1000 g'})" onchange="ing('${i.id}').sg=this.value===''?null:+this.value;R()"> g ${scP(i)?`<b>= ${scP(i).toFixed(1).replace('.',',')}%</b>`:''}`}</td>
 <td><select onchange="ing('${i.id}').iva=+this.value;R()">${ivaOpt(i.iva)}</select></td><td>${pkg(i)}</td><td>${!i.price?'<span class="w">manca prezzo</span>':i.unit==='conf'&&!+i.conf?'<span class="w">manca peso</span>':i.unit==='pz'?eur(uc(i))+'/pz':fm(uc(i))+' €/g'+(scP(i)?'<div class="mu">con scarto '+scP(i).toFixed(1).replace('.',',')+'%</div>':'')}</td><td class="mu">${used(i.id)} piatti</td><td><button class="x" onclick="delIng('${i.id}')">✕</button></td></tr>`).join('');
-return`<div class="row"><input id="s" placeholder="Cerca ingrediente…" value="${esc(q)}" oninput="q=this.value.toLowerCase();R();document.getElementById('s').focus()"><label><input type="checkbox" ${onlyMiss?'checked':''} onchange="onlyMiss=this.checked;R()">Solo senza prezzo (${miss})</label>
-<button class="b" onclick="addIng()">+ Nuovo ingrediente</button></div><div class="card sc"><table><tr><th>Ingrediente</th><th>Prezzo</th><th>Unità</th><th>Peso confezione</th><th>Scarto (g su peso lordo)</th><th>IVA acquisto</th><th>Prezzo al kg</th><th>Costo al g (IVA ${S.p.useIva?'incl.':'escl.'})</th><th></th><th></th></tr>${rows}</table></div>`}
+const nfa=S.ing.filter(i=>i.fa&&!i.fa.ok).length;
+return`${nfa?`<div class="card" style="border-color:var(--ac)"><b>🧾 ${nfa} prezzi aggiornati da fatture</b><span class="mu"> — evidenziati in giallo: controlla e premi «Va bene» o «Ripristina».</span> <button class="b" onclick="fattOkAll()">Segna tutti come controllati</button></div>`:''}<div class="row"><input id="s" placeholder="Cerca ingrediente…" value="${esc(q)}" oninput="q=this.value.toLowerCase();R();document.getElementById('s').focus()"><label><input type="checkbox" ${onlyMiss?'checked':''} onchange="onlyMiss=this.checked;R()">Solo senza prezzo (${miss})</label>
+<button class="b" onclick="addIng()">+ Nuovo ingrediente</button></div><div class="card sc"><table><tr><th>Ingrediente</th><th>Prezzo</th><th>Unità</th><th>Peso confezione</th><th>Scarto (g su peso lordo)</th><th>IVA acquisto</th><th>Prezzo al kg (IVA incl.)</th><th>Costo al g (IVA ${S.p.useIva?'incl.':'escl.'})</th><th></th><th></th></tr>${rows}</table></div>`}
 function addIng(){askText('Nome ingrediente',n=>{S.ing.push({id:'i'+Date.now(),name:cap(n),price:null,unit:'kg',iva:10});q='';R()})}
 function delIng(id){const u=used(id);ask(u?`Usato in ${u} piatti: verrà tolto anche da lì. Eliminare?`:'Eliminare?',()=>{S.ing=S.ing.filter(i=>i.id!==id);S.dishes.forEach(d=>d.lines=d.lines.filter(l=>l.ing!==id));R()})}
 const catSelect=d=>`<label>Categoria <select onchange="dish('${d.id}').cat=this.value;pcat=this.value;R()">${PC.map(([k,t])=>`<option value="${k}" ${catOf(d)===k?'selected':''}>${t}</option>`).join('')}</select></label>`;
@@ -249,6 +251,7 @@ return`<div class="card"><b>Fatture di acquisto</b><div class="row" style="margi
 <div class="card"><b>Altri costi mensili</b><div class="row" style="margin-top:8px">${[['ctel','Telefono'],['cecom','E-commerce'],['ccomm','Commercialista'],['chaccp','HACCP'],['ccons','Consulente del lavoro'],['cfatt','Software fatturazione'],['cads','Pubblicità (ads, volantini, altro)']].map(([k,l])=>costBox(k,l,true)).join('')}</div><div class="mu">Se scegli un'aliquota, l'IVA viene sommata all'importo. Le voci sono incluse nel totale dei costi mensili qui sopra, quindi entrano nel costo del lavoro per pietanza e nel calcolo "Dopo costi fissi".</div></div>
 <div class="card"><b>Ore e lavoro</b><div class="row" style="margin-top:8px">${f('giorni','Giorni lavorativi',1)}${f('ore','Ore lavorative giornaliere',0.5)}${f('minuti','Minuti di lavoro per pietanza',1)}</div><div class="mu">Ore mensili ${oreM()} · costo orario ${eur(cOr())} · costo al minuto ${eur(cOr()/60)} · <b>costo lavoro per pietanza ${eur(lav())}</b></div></div>
 <div class="card"><b>Commissioni piattaforme</b><div class="mu">Commissione sul fatturato, più una percentuale fissa aggiuntiva. Con la spunta si aggiunge l'IVA 22% sul totale.</div>${[['glovo','Glovo'],['justeat','Just Eat'],['deliveroo','Deliveroo'],['ecom','E-commerce personale'],['fork','The Fork'],['extra','Altra piattaforma']].map(([c,l])=>`<div class="row" style="margin-top:8px">${c==='extra'?`<input value="${esc(S.p.extraName||'')}" placeholder="Altra piattaforma: scrivi il nome" onchange="S.p.extraName=this.value.trim();R()" style="width:180px">`:`<b style="min-width:120px">${l}</b>`}${f(c,'Commissione %',0.5)}${f(c+'F','Fissa aggiuntiva %',0.5)}<label><input type="checkbox" ${S.p[c+'V']?'checked':''} onchange="S.p['${c+'V'}']=this.checked;R()">+ IVA 22%</label><span class="mu">totale <b>${eff(c).toFixed(2)}%</b></span></div>`).join('')}</div>
+<div class="card"><b>Fatture e prezzi ingredienti</b><div class="row" style="margin-top:8px"><label><input type="checkbox" ${S.p.noAuto?'':'checked'} onchange="S.p.noAuto=!this.checked;R()">Aggiorna in automatico i prezzi degli ingredienti dalle fatture salvate</label></div><div class="mu">Gli ingredienti aggiornati sono evidenziati in giallo nella scheda Ingredienti, con «Va bene» e «Ripristina». Le voci non riconosciute si abbinano a mano dalla fattura.</div></div>
 <div class="card"><b>IVA, scarto e ricarico</b><div class="row" style="margin-top:8px"><label><input type="checkbox" ${S.p.useIva?'checked':''} onchange="S.p.useIva=this.checked;R()">Calcola i costi con l'IVA di acquisto (si sceglie per ogni ingrediente)</label>${f('scarto','Scarto %',1)}${f('ricarico','Ricarico ×',0.1)}</div>
 <p class="mu">Costo totale = (ingredienti + impasto + lavoro) × (1 + scarto). Prezzo consigliato = costo totale × ricarico. Food cost % = (ingredienti + impasto) / prezzo di vendita. Numero di pareggio = costi mensili / (ingredienti + impasto + lavoro), come nel foglio. I dati restano salvati in questo browser.</p>
 <button class="b" onclick="ask('Ripristinare i dati iniziali? Cancella tutti i dati inseriti, anche sugli altri dispositivi se la sincronizzazione è attiva.',()=>{try{localStorage.removeItem('fcs1')}catch(e){}location.reload()})">Ripristina dati iniziali</button></div>`}
@@ -298,6 +301,48 @@ function dlg(html){const o=document.createElement('div');o.style.cssText='positi
 function ask(msg,fn){const o=dlg('<p>'+esc(msg)+'</p><div class="row"><button class="b" id="dy">Sì</button><button class="b" id="dn">Annulla</button></div>');o.querySelector('#dy').onclick=()=>{o.remove();fn()};o.querySelector('#dn').onclick=()=>o.remove()}
 function askText(msg,fn){const o=dlg('<p>'+esc(msg)+'</p><input id="dt" style="width:100%;box-sizing:border-box;margin-bottom:10px"><div class="row"><button class="b" id="dy">Aggiungi</button><button class="b" id="dn">Annulla</button></div>');const i=o.querySelector('#dt'),go=()=>{const v=i.value.trim();if(!v)return;o.remove();fn(v)};o.querySelector('#dy').onclick=go;o.querySelector('#dn').onclick=()=>o.remove();i.onkeydown=e=>{if(e.key==='Enter')go()};i.focus()}
 let pend=[],fq='',fmsg='';
+/* ===== Fatture → prezzi ingredienti (automatico, con segnalazione) ===== */
+const nz=t=>String(t||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z\s]/g,' ');
+const stem=w=>w.length>3?w.replace(/[aeio]$/,''):w;
+const toks=t=>nz(t).split(/\s+/).filter(w=>w.length>2&&!['per','con','del','dei','della','delle','kg','gr','conf','pz','cart','cartone','sfuso','fresco','fresca'].includes(w)).map(stem);
+const normKey=t=>toks(t).sort().join(' ');
+function matchIng(desc){S.alias=S.alias||{};const k=normKey(desc);if(k&&S.alias[k]){const i=ing(S.alias[k]);if(i)return i}
+const dt_=new Set(toks(desc));let best=null,bs=0,tie=false;
+S.ing.forEach(i=>{if(i.auto)return;const t=toks(i.name);if(!t.length||!t.every(w=>dt_.has(w)))return;const sc=t.length*10+i.name.length/100;if(sc>bs){bs=sc;best=i;tie=false}else if(sc===bs)tie=true});
+return tie?null:best}
+function packG(desc){const m=String(desc).toLowerCase().match(/(\d+(?:[.,]\d+)?)\s*(kg|gr|g)\b/);if(!m)return 0;const v=parseFloat(m[1].replace(',','.'));return m[2]==='kg'?v*1000:v}
+function rowPrice(i,r){const q=+r.q||0,tot=+r.tot||0;let pu=q>0&&tot>0?tot/q:(+r.pu||0);if(!(pu>0))return{why:'prezzo mancante'};
+const u=String(r.u||'').trim().toLowerCase().replace(/\./g,'');
+const isKg=['kg','kgm','chilo','chili'].includes(u),isG=['g','gr','grm'].includes(u),isPz=['pz','nr','n','cf','ct','cartone','conf','confezione','pezzi','pezzo','prz'].includes(u);
+if(i.unit==='kg'){if(isKg)return{pu};if(isG)return{pu:pu*1000};const g=packG(r.d);if((isPz||!u)&&g)return{pu:pu/g*1000};return{why:u?'unità «'+u+'» non convertibile in €/kg':'unità non indicata'}}
+if(i.unit==='pz'){if(isPz||(!u&&q>0))return{pu};return{why:'unità non compatibile con €/pz'}}
+if(i.unit==='conf'){if(isPz)return{pu};return{why:'unità non compatibile con €/confezione'}}
+return{why:'unità non gestita'}}
+function applyFatt(f){if(!f||f.errore||S.p.noAuto)return;S.alias=S.alias||{};
+(f.righe||[]).forEach(r=>{if(r.m&&r.m.st!=='nomatch')return;r.m=null;if(!String(r.d||'').trim())return;const i=matchIng(r.d);if(!i){r.m={st:'nomatch'};return}
+const rp=rowPrice(i,r);if(rp.why){r.m={st:'skip',ing:i.id,why:rp.why};return}
+if(i.fd&&f.data&&f.data<i.fd){r.m={st:'skip',ing:i.id,why:'fattura più vecchia dell\'ultimo aggiornamento'};return}
+const nw=Math.round(rp.pu*10000)/10000,old=i.price??null;
+r.m={st:'ok',ing:i.id,old,nw};
+if(old!==null&&Math.abs(old-nw)<0.00005){r.m.st='same';return}
+i.fa={fid:f.id,forn:f.fornitore,num:f.numero,data:f.data,old,oldIva:i.iva,nw,ok:false};
+i.price=nw;if([4,5,10,22].includes(+r.iva))i.iva=+r.iva;if(f.data)i.fd=f.data})}
+function mCell(f,r,j){const m=r.m;if(!m)return'<span class="mu">–</span>';const i=m.ing?ing(m.ing):null,nm=i?esc(i.name):'';
+if(m.st==='ok')return`<span class="w">🧾 ${nm}: ${m.old==null?'':eur(m.old)+' → '}${eur(m.nw)}</span>`;
+if(m.st==='same')return`<span class="mu">✓ ${nm} (prezzo invariato)</span>`;
+if(m.st==='skip')return`<span class="w">⚠ ${nm}: non aggiornato (${esc(m.why)})</span>`;
+return`<span class="w">non riconosciuto</span> <button class="b" onclick="linkRow('${f.id}',${j})">Abbina</button>`}
+function fSum(f){const a=f.righe.filter(r=>r.m&&r.m.st==='ok').length,b=f.righe.filter(r=>r.m&&(r.m.st==='nomatch'||r.m.st==='skip')).length;return(a?' <span class="w">🧾 '+a+' prezzi aggiornati</span>':'')+(b?' <span class="mu">'+b+' da abbinare</span>':'')}
+function pushF(o){S.fatt.push(o);applyFatt(o)}
+function reapplyF(id){const f=S.fatt.find(x=>x.id===id);if(f){applyFatt(f);R()}}
+function linkRow(fid,j){const f=S.fatt.find(x=>x.id===fid);if(!f)return;const r=f.righe[j];
+const o=dlg('<b>Abbina «'+esc(r.d)+'» a un ingrediente</b><p class="mu">La prossima volta questa voce verrà riconosciuta da sola.</p><select id="lk" style="width:100%;margin-bottom:10px">'+S.ing.filter(i=>!i.auto).sort((a,b)=>a.name.localeCompare(b.name)).map(i=>'<option value="'+i.id+'">'+esc(i.name)+'</option>').join('')+'</select><div class="row"><button class="b" id="dy">Abbina</button><button class="b" id="dn">Annulla</button></div>');
+o.querySelector('#dn').onclick=()=>o.remove();o.querySelector('#dy').onclick=()=>{const id=o.querySelector('#lk').value;o.remove();S.alias=S.alias||{};const k=normKey(r.d);if(k)S.alias[k]=id;applyFatt(f);R()}}
+function fattOk(id){const i=ing(id);if(i&&i.fa){i.fa.ok=true}R()}
+function fattUndo(id){const i=ing(id);if(!i||!i.fa)return;ask('Tornare al prezzo precedente ('+(i.fa.old==null?'nessuno':eur(i.fa.old))+')?',()=>{i.price=i.fa.old;if(i.fa.oldIva!=null)i.iva=i.fa.oldIva;i.fa=null;i.fd=null;R()})}
+function fattOkAll(){S.ing.forEach(i=>{if(i.fa)i.fa.ok=true});R()}
+const faBox=i=>{if(!i.fa||i.fa.ok)return'';const a=i.fa;return`<div class="w" style="margin-top:4px">🧾 Aggiornato da fattura: ${a.old==null?'nuovo prezzo':eur(a.old)+' → '}<b>${eur(a.nw)}</b> · ${esc(a.forn)} n° ${esc(a.num)} (${dIt(a.data)})<div class="row" style="margin-top:4px"><button class="b" onclick="fattOk('${i.id}')">✓ Va bene</button><button class="b" onclick="fattUndo('${i.id}')">↩ Ripristina</button></div></div>`};
+
 const dIt=d=>/^\d{4}-\d{2}-\d{2}/.test(d||'')?d.slice(8,10)+'/'+d.slice(5,7)+'/'+d.slice(0,4):(d||'');
 const num=v=>{const n=parseFloat(String(v).replace(',','.'));return isFinite(n)?n:0};
 const sumF=p=>p.righe.reduce((s,r)=>s+(+r.tot||0),0);
@@ -336,8 +381,8 @@ try{let staged=[];try{staged=JSON.parse(localStorage.getItem('fcs_taken')||'[]')
 let items=[];try{items=(await rpc('fc_inbox_take',{}))||[]}catch(e){}
 if(items.length){staged=staged.concat(items);try{localStorage.setItem('fcs_taken',JSON.stringify(staged))}catch(e){}}
 if(staged.length){let ok=0,dup=0,bad=0;
-staged.forEach((it,k)=>{try{parseFattXml(it.xml).forEach(p=>{if(isDup(p)){dup++;return}S.fatt.push({id:'f'+Date.now()+'_'+k+'_'+ok,fornitore:p.fornitore,piva:p.piva||'',numero:p.numero,data:p.data,righe:p.righe,totale:p.totale||Math.round(p.righe.reduce((s,r)=>s+(+r.tot||0)*(1+(+r.iva||0)/100),0)*100)/100,file:it.name||'',nuova:true});ok++})}
-catch(e){bad++;S.fatt.push({id:'f'+Date.now()+'_e'+k,fornitore:'⚠ File non leggibile',piva:'',numero:it.name||'',data:'',righe:[],totale:0,file:it.name||'',nuova:true,errore:true})}});
+staged.forEach((it,k)=>{try{parseFattXml(it.xml).forEach(p=>{if(isDup(p)){dup++;return}pushF({id:'f'+Date.now()+'_'+k+'_'+ok,fornitore:p.fornitore,piva:p.piva||'',numero:p.numero,data:p.data,righe:p.righe,totale:p.totale||Math.round(p.righe.reduce((s,r)=>s+(+r.tot||0)*(1+(+r.iva||0)/100),0)*100)/100,file:it.name||'',nuova:true});ok++})}
+catch(e){bad++;pushF({id:'f'+Date.now()+'_e'+k,fornitore:'⚠ File non leggibile',piva:'',numero:it.name||'',data:'',righe:[],totale:0,file:it.name||'',nuova:true,errore:true})}});
 save();try{localStorage.removeItem('fcs_taken')}catch(e){}
 fmsg='Arrivate '+ok+' nuove fatture'+(dup?', '+dup+' già presenti':'')+(bad?', '+bad+' non leggibili':'')+'.';
 if(view==='fatt')R()}}catch(e){}
@@ -360,7 +405,7 @@ Corpo (JSON):
 {"p_token":"${esc(sy.tok)}","p_name":"NOME-FILE.xml","p_xml":"CONTENUTO-DEL-FILE-XML"}</pre>
 <div class="row"><button class="b" onclick="inboxNow()">Controlla nuove fatture ora</button></div>`}
 return`<details class="card"><summary><b>⚙️ Collega un servizio di fatturazione (arrivo automatico)</b></summary><div style="margin-top:8px">${b}</div></details>`}
-function saveAll(){let ok=0,skip=0;pend.slice().forEach((p,k)=>{if(!p.fornitore.trim()||isDup(p)){skip++;return}S.fatt.push({id:'f'+Date.now()+'_'+k,fornitore:p.fornitore,piva:p.piva||'',numero:p.numero,data:p.data,righe:p.righe,totale:p.totale||Math.round(p.righe.reduce((s,r)=>s+(+r.tot||0)*(1+(+r.iva||0)/100),0)*100)/100,file:p.file||''});pend.splice(pend.indexOf(p),1);ok++});fmsg=ok+' fatture salvate'+(skip?', '+skip+' saltate (già presenti o senza fornitore)':'')+'.';R()}
+function saveAll(){let ok=0,skip=0;pend.slice().forEach((p,k)=>{if(!p.fornitore.trim()||isDup(p)){skip++;return}pushF({id:'f'+Date.now()+'_'+k,fornitore:p.fornitore,piva:p.piva||'',numero:p.numero,data:p.data,righe:p.righe,totale:p.totale||Math.round(p.righe.reduce((s,r)=>s+(+r.tot||0)*(1+(+r.iva||0)/100),0)*100)/100,file:p.file||''});pend.splice(pend.indexOf(p),1);ok++});fmsg=ok+' fatture salvate'+(skip?', '+skip+' saltate (già presenti o senza fornitore)':'')+'.';R()}
 function parseOcr(txt){
 const clean=x=>{x=x.replace(/[|_¦]+/g,' ').replace(/(\d)[;:'](\d)/g,'$1,$2').replace(/\s+/g,' ').trim();x=x.split(' ').map(t=>/\d/.test(t)&&!/[A-Za-zÀ-ÿ]{3,}/.test(t)?t.replace(/^[^\d€-]+|[^\d%]+$/g,''):t).filter(t=>t&&!/^[-–—©~°:;.,•*·'"`´]+$/.test(t)).join(' ');return x.trim()};
 const L=String(txt||'').split(/\r?\n/).map(clean).filter(Boolean);
@@ -417,7 +462,7 @@ else{msgs.push(f.name+': formato non riconosciuto.');continue}
 if(!arr.length)msgs.push(f.name+': nessuna fattura trovata.');arr.forEach(x=>{x.file=x.file||f.name;pend.push(x)})}
 catch(e){msgs.push(f.name+': '+(e.message==='ocrload'?'impossibile scaricare il lettore di testo: controlla la connessione e riprova, oppure usa l\'XML.':e.message==='imgbad'?'immagine non leggibile.':e.message==='zipdec'?"questo browser non riesce ad aprire gli ZIP: scompattalo e carica i file XML.":e.code==='not_granted'?'autorizzazione negata.':'impossibile leggere il file.'))}}
 fmsg=msgs.join(' · ')||('Lette '+pend.length+' fatture: verifica i dati e salva.');R()}
-function saveFatt(k){const p=pend[k];const go=()=>{S.fatt.push({id:'f'+Date.now()+k,fornitore:p.fornitore,piva:p.piva||'',numero:p.numero,data:p.data,righe:p.righe,totale:p.totale||Math.round(p.righe.reduce((s,r)=>s+(+r.tot||0)*(1+(+r.iva||0)/100),0)*100)/100,file:p.file||''});pend.splice(k,1);R()};
+function saveFatt(k){const p=pend[k];const go=()=>{pushF({id:'f'+Date.now()+k,fornitore:p.fornitore,piva:p.piva||'',numero:p.numero,data:p.data,righe:p.righe,totale:p.totale||Math.round(p.righe.reduce((s,r)=>s+(+r.tot||0)*(1+(+r.iva||0)/100),0)*100)/100,file:p.file||''});pend.splice(k,1);R()};
 if(!p.fornitore.trim())return note('Scrivi il nome del fornitore.');if(isDup(p))ask('Esiste già una fattura con lo stesso fornitore, numero e data. Salvarla comunque?',go);else go()}
 function pFatt(){
 const pe=pend.map((p,k)=>`<div class="card" style="border-color:var(--ac)"><b>Da verificare e salvare</b>${p.src==='ocr'?' <span class="w">lettura gratuita: controlla ogni riga</span>':p.src==='ia'?' <span class="w">letta con intelligenza artificiale: controlla i dati</span>':''}${isDup(p)?' <span class="w">già salvata: stesso fornitore, numero e data</span>':''}<div class="row" style="margin-top:8px"><label>Fornitore <input value="${esc(p.fornitore)}" onchange="pend[${k}].fornitore=this.value;R()"></label><label>N° fattura <input style="width:110px" value="${esc(p.numero)}" onchange="pend[${k}].numero=this.value;R()"></label><label>Data <input type="date" value="${/^\d{4}-/.test(p.data)?p.data:''}" onchange="pend[${k}].data=this.value;R()"></label></div>
@@ -426,8 +471,8 @@ ${p.nota?`<div class="mu">${esc(p.nota)}</div>`:''}${p.img?`<details style="marg
 <div class="row" style="margin-top:8px"><button class="b" onclick="pend[${k}].righe.push({d:'',q:0,u:'',pu:0,tot:0,iva:0});R()">+ Riga</button><button class="b" onclick="saveFatt(${k})">Salva fattura</button><button class="b" onclick="pend.splice(${k},1);R()">Scarta</button><span class="mu">Imponibile righe ${eur(sumF(p))}</span></div></div>`).join('');
 const list=S.fatt.filter(f=>!fq||(f.fornitore+' '+f.numero+' '+f.righe.map(r=>r.d).join(' ')).toLowerCase().includes(fq)).sort((a,b)=>(b.data||'').localeCompare(a.data||''));
 const tot=list.reduce((s,f)=>s+sumF(f),0);
-const saved=list.map(f=>`<details class="card"><summary><b>${esc(f.fornitore)}</b>${f.nuova?' <span class="w">nuova</span>':''}<span>n° ${esc(f.numero)} · ${dIt(f.data)} · imponibile ${eur(sumF(f))}${f.totale?' · totale '+eur(f.totale):''}</span></summary>
-<div class="sc" style="margin-top:8px"><table><tr><th>Descrizione</th><th>Qtà</th><th>Un.</th><th>Prezzo unit.</th><th>Totale</th><th>IVA</th></tr>${f.righe.map(r=>`<tr><td>${esc(r.d)}</td><td>${r.q}</td><td>${esc(r.u)}</td><td>${eur(r.pu)}</td><td>${eur(r.tot)}</td><td>${r.iva}%</td></tr>`).join('')}</table></div>
+const saved=list.map(f=>`<details class="card"><summary><b>${esc(f.fornitore)}</b>${f.nuova?' <span class="w">nuova</span>':''}${fSum(f)}<span>n° ${esc(f.numero)} · ${dIt(f.data)} · imponibile ${eur(sumF(f))}${f.totale?' · totale '+eur(f.totale):''}</span></summary>
+<div class="sc" style="margin-top:8px"><table><tr><th>Descrizione</th><th>Qtà</th><th>Un.</th><th>Prezzo unit.</th><th>Totale</th><th>IVA</th><th>Ingrediente</th></tr>${f.righe.map((r,j)=>`<tr><td>${esc(r.d)}</td><td>${r.q}</td><td>${esc(r.u)}</td><td>${eur(r.pu)}</td><td>${eur(r.tot)}</td><td>${r.iva}%</td><td>${mCell(f,r,j)}</td></tr>`).join('')}</table></div>
 <div class="row" style="margin-top:8px"><span class="mu">${f.piva?'P.IVA '+esc(f.piva)+' · ':''}${f.file?'file: '+esc(f.file):''}</span>${f.nuova?`<button class="b" onclick="S.fatt.find(x=>x.id==='${f.id}').nuova=false;R()">Segna come controllata</button>`:''}<button class="b" onclick="ask('Eliminare questa fattura?',()=>{S.fatt=S.fatt.filter(x=>x.id!=='${f.id}');R()})">Elimina</button></div></details>`).join('');
 return`<div class="row"><button class="b" onclick="view='par';R()">← Parametri</button></div>
 <div class="card"><b>Carica fatture di acquisto</b><div class="mu" style="margin:4px 0 8px">Fatture elettroniche in formato <b>XML</b>, <b>.p7m</b> o <b>ZIP</b> con più fatture (lettura precisa), oppure <b>foto</b> della fattura: il programma la trasforma in testo e compila i dati (controlla sempre fornitore, righe e prezzi prima di salvare). I PDF non sono supportati: usa l'XML o una foto.</div><input type="file" accept=".xml,.p7m,.zip,image/*" multiple onchange="loadFatt(this.files)"><div class="mu" id="fmsg" style="margin-top:6px">${esc(fmsg)}</div></div>
