@@ -310,7 +310,7 @@ function matchIng(desc){S.alias=S.alias||{};const k=normKey(desc);if(k&&S.alias[
 const dt_=new Set(toks(desc));let best=null,bs=0,tie=false;
 S.ing.forEach(i=>{if(i.auto)return;const t=toks(i.name);if(!t.length||!t.every(w=>dt_.has(w)))return;const sc=t.length*10+i.name.length/100;if(sc>bs){bs=sc;best=i;tie=false}else if(sc===bs)tie=true});
 return tie?null:best}
-function packG(desc){const m=String(desc).toLowerCase().match(/(\d+(?:[.,]\d+)?)\s*(kg|gr|g)\b/);if(!m)return 0;const v=parseFloat(m[1].replace(',','.'));return m[2]==='kg'?v*1000:v}
+function packG(desc){const d=String(desc).toLowerCase();let m=d.match(/(\d+(?:[.,]\d+)?)\s*(kg|gr|g)\b(?:\.|\s)?/),v,u;if(m){v=parseFloat(m[1].replace(',','.'));u=m[2]}else{m=d.match(/\b(kg|gr|g)\.?\s*(\d+(?:[.,]\d+)?)/);if(!m)return 0;v=parseFloat(m[2].replace(',','.'));u=m[1]}let g=u==='kg'?v*1000:v;const x=d.match(/(?:kg|gr|g)\.?\s*\d+(?:[.,]\d+)?\s*x\s*(\d+)/);if(x)g*=+x[1];return g}
 function rowPrice(i,r){const q=+r.q||0,tot=+r.tot||0;let pu=q>0&&tot>0?tot/q:(+r.pu||0);if(!(pu>0))return{why:'prezzo mancante'};
 const u=String(r.u||'').trim().toLowerCase().replace(/\./g,'');
 const isKg=['kg','kgm','chilo','chili'].includes(u),isG=['g','gr','grm'].includes(u),isPz=['pz','nr','n','cf','ct','cartone','conf','confezione','pezzi','pezzo','prz'].includes(u);
@@ -407,27 +407,30 @@ Corpo (JSON):
 return`<details class="card"><summary><b>⚙️ Collega un servizio di fatturazione (arrivo automatico)</b></summary><div style="margin-top:8px">${b}</div></details>`}
 function saveAll(){let ok=0,skip=0;pend.slice().forEach((p,k)=>{if(!p.fornitore.trim()||isDup(p)){skip++;return}pushF({id:'f'+Date.now()+'_'+k,fornitore:p.fornitore,piva:p.piva||'',numero:p.numero,data:p.data,righe:p.righe,totale:p.totale||Math.round(p.righe.reduce((s,r)=>s+(+r.tot||0)*(1+(+r.iva||0)/100),0)*100)/100,file:p.file||''});pend.splice(pend.indexOf(p),1);ok++});fmsg=ok+' fatture salvate'+(skip?', '+skip+' saltate (già presenti o senza fornitore)':'')+'.';R()}
 function parseOcr(txt){
-const clean=x=>{x=x.replace(/[|_¦]+/g,' ').replace(/(\d)[;:'](\d)/g,'$1,$2').replace(/\s+/g,' ').trim();x=x.split(' ').map(t=>/\d/.test(t)&&!/[A-Za-zÀ-ÿ]{3,}/.test(t)?t.replace(/^[^\d€-]+|[^\d%]+$/g,''):t).filter(t=>t&&!/^[-–—©~°:;.,•*·'"`´]+$/.test(t)).join(' ');return x.trim()};
+const clean=x=>{x=x.replace(/[|_¦]+/g,' ').replace(/(\d)[;:'](\d)/g,'$1,$2').replace(/\s+/g,' ').trim();x=x.split(' ').map(t=>/\d/.test(t)&&!/[A-Za-zÀ-ÿ]/.test(t)?t.replace(/^[^\d€-]+|[^\d%]+$/g,''):t).filter(t=>t&&!/^[-–—©~°:;.,•*·'"`´]+$/.test(t)).join(' ');return x.trim()};
 const L=String(txt||'').split(/\r?\n/).map(clean).filter(Boolean);
 const toN=s=>{s=String(s).replace(/[€%\s]/g,'');if(/,/.test(s)&&/\./.test(s))s=s.replace(/\./g,'').replace(',','.');else s=s.replace(',','.');const v=parseFloat(s);return isFinite(v)?v:NaN};
-const isNum=t=>/^-?\d{1,3}(\.\d{3})*,\d{1,4}$|^-?\d+,\d{1,4}$|^-?\d+\.\d{2,4}$|^\d{1,6}%?$/.test(t.replace(/^€/,''));
+const isNum=t=>/^-?\d{1,3}(\.\d{3})*,\d{1,5}$|^-?\d+,\d{1,5}$|^-?\d+\.\d{2,5}$|^\d{1,6}%?$/.test(t.replace(/^€/,''));
 const full=L.join('\n');let m,piva='',numero='',data='',forn='',totale=0;
 m=full.match(/(?:p\.?\s?i\.?\s?v\.?\s?a|partita\s*iva|p\.\s?i\.)\s*[:.]?\s*(?:it)?\s*(\d{11})/i);if(m)piva=m[1];
-m=full.match(/fattura[^\n\d]{0,25}?(\d[\w\/\-]{0,14})/i)||full.match(/\bn[°o.]\s*(\d[\w\/\-]{0,14})/i);if(m)numero=m[1].replace(/[.,;]$/,'');
+m=full.match(/fattura[^\n\d]{0,25}?(\d[\w\/\-]{0,14})/i)||full.match(/(\d[\w\/\-]{2,14})\s+del\s+\d{1,2}[\/.]\d{1,2}[\/.]\d{2,4}/i)||full.match(/\bn[°o.]\s*(\d[\w\/\-]{0,14})/i);if(m)numero=m[1].replace(/[.,;]$/,'');
 m=full.match(/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4}|\d{2})\b/);if(m){let y=m[3];if(y.length===2)y='20'+y;data=y+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0')}
-for(const l0 of L.slice(0,8)){const l=l0.replace(/\b(fattura|documento|data)\b.*$/i,'').trim();if((l.match(/[A-Za-zÀ-ÿ]/g)||[]).length>=4&&!/fattura|documento|cliente|spett|destinat|data\b|pag\.|p\.?\s?iva|partita|codice|via |cap\b|tel\b|www|@|descrizione|importo|quantit/i.test(l)){forn=l;break}}
+for(const l0 of L.filter((x,i)=>i<20&&/s\.?\s?r\.?\s?l\b|s\.?\s?p\.?\s?a\b|supermercat|\bsnc\b|s\.a\.s/i.test(x)).concat(L.slice(0,8))){const l=l0.replace(/\b(fattura|documento|data|numero)\b.*$/i,'').trim();if((l.match(/[A-Za-zÀ-ÿ]/g)||[]).length>=4&&!/fattura|documento|cliente|spett|destinat|data\b|pag\.|p\.?\s?iva|partita|codice|via |cap\b|tel\b|www|@|descrizione|importo|quantit/i.test(l)){forn=l;break}}
 const SK=/^(i[mn]+[a-z]{0,3}ponibile|totale|tot\.|imponibile|iva\b|imposta|scadenz|pagament|banca|iban|cap\b|via\b|tel|pec|cod|p\.?\s?iva|partita|data|fattura|n[°.]|numero|spett|cliente|destinat|sconto|bollo|arrotond|acconto|netto|importo|descrizione|quantit|riepilogo|aliquota|vs\.|rif)/i;
 const UM=/^(kg|lt|l|pz|cf|nr|n|conf|colli|gr|g|cartone|crt|pezzi|confezione|mt|ml)\.?$/i;
-const righe=[];
-for(const l of L){if(SK.test(l))continue;const t=l.split(' ');let e=t.length;while(e>0&&isNum(t[e-1]))e--;const nums=t.slice(e).map(toN);if(nums.length<2||nums.some(isNaN))continue;
-if(!nums.some((v,i)=>/[.,]\d/.test(t[e+i])))continue;
-let um='',d=t.slice(0,e);if(d.length&&UM.test(d[d.length-1])){um=d.pop().toLowerCase().replace('.','')}
-const desc=d.join(' ').replace(/^[\d.\-–\s]+(?=[A-Za-zÀ-ÿ])/,'').replace(/[\s.:,;-]+$/,'');if((desc.match(/[A-Za-zÀ-ÿ]/g)||[]).length<3)continue;
-const n=nums.length,tot=nums[n-1];let q=1,pu=0,iva=0;const IV=[4,5,10,22];
-if(n>=4){q=nums[0];pu=nums[1];if(IV.includes(nums[2]))iva=nums[2]}
-else if(n===3){if(Math.abs(nums[0]*nums[1]-tot)<=Math.max(.05,tot*.03)){q=nums[0];pu=nums[1]}else if(IV.includes(nums[1])){pu=nums[0];iva=nums[1];q=pu?Math.round(tot/pu*1000)/1000:1}else{q=nums[0];pu=nums[1]}}
-else{pu=nums[0];q=pu?Math.round(tot/pu*1000)/1000:1}
-righe.push({d:desc,q,u:um,pu,tot,iva})}
+const righe=[];const IV=[4,5,10,22];
+for(const l of L){if(SK.test(l))continue;const t=l.split(' ');let e=t.length;while(e>0&&isNum(t[e-1]))e--;if(t.length-e<2)continue;
+const s0=Math.max(e,t.length-8);const N=t.slice(s0).map(toN);if(N.some(isNaN))continue;
+const dec=i=>/[.,]\d/.test(t[s0+i]);let hit=null;
+for(let ti=N.length-1;ti>=1&&!hit;ti--){if(N.length-1-ti>1)break;if(N.length-1-ti===1&&!IV.includes(N[ti+1]))continue;
+const tot=N[ti];if(!(tot>0)||!dec(ti))continue;const pi=ti-1;if(pi<1)continue;const pu=N[pi];if(!(pu>0))continue;
+for(const[qi,iv]of[[pi-1,-1],[pi-2,pi-1]]){if(qi<0)continue;if(iv>=0&&!IV.includes(N[iv]))continue;const q=N[qi];
+if(Math.abs(q*pu-tot)<=Math.max(.02,tot*.015)){hit={q,pu,tot,iva:iv>=0?N[iv]:(N.length-1-ti===1?N[ti+1]:0),qi:s0+qi};break}}}
+if(!hit){const n=N.length;if(n>=2&&dec(n-1)){let k=n-1,iva=0;if(n>=3&&IV.includes(N[n-1])&&!dec(n-1)){iva=N[n-1];k=n-2}const tot=N[k],pu=N[k-1];if(pu>0&&tot>0){let fi=N.findIndex((v,i)=>dec(i));if(fi<0||fi>k-1)fi=k-1;hit={q:Math.round(tot/pu*1000)/1000,pu,tot,iva,qi:s0+fi,fb:1}}}}
+if(!hit)continue;
+let um='',d=t.slice(0,hit.qi);if(d.length&&UM.test(d[d.length-1])){um=d.pop().toLowerCase().replace('.','')}if(hit.fb){while(d.length>1&&/^\d{1,4}$/.test(d[d.length-1]))d.pop();if(!um&&d.length&&UM.test(d[d.length-1]))um=d.pop().toLowerCase().replace('.','')}
+let desc=d.join(' ').replace(/^(?:\S*\d\S*\s+)+(?=\S)/,t=>t.split(' ').filter(Boolean).every(w=>w.length>=5||/^\d+$/.test(w)&&w.length>=4)?'':t).replace(/^[\d.\-–\s]+(?=[A-Za-zÀ-ÿ])/,'').replace(/[\s.:,;-]+$/,'');if((desc.match(/[A-Za-zÀ-ÿ]/g)||[]).length<3)continue;
+righe.push({d:desc,q:hit.q,u:um,pu:hit.pu,tot:hit.tot,iva:hit.iva})}
 for(const l of L){if(/totale|da pagare|importo dovuto|netto a pagare/i.test(l)){const ns=l.split(' ').filter(isNum).map(toN).filter(v=>!isNaN(v));if(ns.length)totale=Math.max(totale,...ns)}}
 return{fornitore:forn,piva,numero,data,totale,righe}}
 
@@ -438,22 +441,37 @@ function imgCanvas(f,max,minW){return new Promise((ok,ko)=>{const u=URL.createOb
 function prepGray(c){const x=c.getContext('2d'),d=x.getImageData(0,0,c.width,c.height),a=d.data,h=new Uint32Array(256);for(let i=0;i<a.length;i+=4){const g=(a[i]*.299+a[i+1]*.587+a[i+2]*.114)|0;a[i]=a[i+1]=a[i+2]=g;h[g]++}
 const n=a.length/4;let s=0,lo=0,hi=255;for(let i=0;i<256;i++){s+=h[i];if(s>=n*.01){lo=i;break}}s=0;for(let i=255;i>=0;i--){s+=h[i];if(s>=n*.01){hi=i;break}}
 const r=Math.max(1,hi-lo);for(let i=0;i<a.length;i+=4){const v=Math.max(0,Math.min(255,((a[i]-lo)*255/r)|0));a[i]=a[i+1]=a[i+2]=v}x.putImageData(d,0,0)}
+
+function noLines(c){const x=c.getContext('2d'),W=c.width,H=c.height,d=x.getImageData(0,0,W,H),a=d.data,dk=new Uint8Array(W*H);for(let i=0,j=0;i<a.length;i+=4,j++)dk[j]=a[i]<150?1:0;
+const m=new Uint8Array(W*H),hl=Math.round(W*.06),vl=Math.round(H*.027);
+for(let y=0;y<H;y++){let s=-1;for(let xx=0;xx<=W;xx++){const v=xx<W&&dk[y*W+xx];if(v){if(s<0)s=xx}else if(s>=0){if(xx-s>=hl)for(let k=s;k<xx;k++)m[y*W+k]=1;s=-1}}}
+for(let xx=0;xx<W;xx++){let s=-1;for(let y=0;y<=H;y++){const v=y<H&&dk[y*W+xx];if(v){if(s<0)s=y}else if(s>=0){if(y-s>=vl)for(let k=s;k<y;k++)m[k*W+xx]=1;s=-1}}}
+let cnt=0;for(let i=0;i<m.length;i++)cnt+=m[i];if(cnt>m.length*.08)return;
+const m2=new Uint8Array(m.length);for(let y=0;y<H;y++)for(let xx=0;xx<W;xx++){if(m[y*W+xx]){for(let dy=-2;dy<=2;dy++){const yy=y+dy;if(yy<0||yy>=H)continue;for(let dx=-2;dx<=2;dx++){const x2=xx+dx;if(x2>=0&&x2<W)m2[yy*W+x2]=1}}}}
+for(let i=0,j=0;i<a.length;i+=4,j++)if(m2[j]){a[i]=a[i+1]=a[i+2]=255}x.putImageData(d,0,0)}
+function rotC(c,deg){const t=document.createElement('canvas'),q=deg%180!==0;t.width=q?c.height:c.width;t.height=q?c.width:c.height;const g=t.getContext('2d');g.translate(t.width/2,t.height/2);g.rotate(deg*Math.PI/180);g.drawImage(c,-c.width/2,-c.height/2);return t}
+function smallC(c,m){const k=Math.min(1,m/Math.max(c.width,c.height)),t=document.createElement('canvas');t.width=Math.round(c.width*k);t.height=Math.round(c.height*k);t.getContext('2d').drawImage(c,0,0,t.width,t.height);return t}
 function thumb(c){const k=Math.min(1,700/c.width),t=document.createElement('canvas');t.width=Math.round(c.width*k);t.height=Math.round(c.height*k);t.getContext('2d').drawImage(c,0,0,t.width,t.height);return t.toDataURL('image/jpeg',.6)}
-async function ocrImg(f){setFm('Preparo la foto…');const c=await imgCanvas(f,2200,1600);prepGray(c);const pv=thumb(c);
-if(!window.Tesseract){setFm('Scarico il lettore di testo (solo la prima volta)…');await loadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js')}
+async function ocrImg(f){setFm('Preparo la foto…');let c=await imgCanvas(f,2200,1600);prepGray(c);const pv=thumb(c);
+if(!window.Tesseract){setFm('Scarico il lettore di testo (solo la prima volta)…');try{await loadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js')}catch(e){await loadScript('https://unpkg.com/tesseract.js@5.1.1/dist/tesseract.min.js')}}
 const w=await Tesseract.createWorker('ita',1,{logger:m=>{const st=m.status||'';if(st==='recognizing text')setFm('Leggo la foto… '+Math.round((m.progress||0)*100)+'%');else if(/load|init/.test(st))setFm('Preparo la lettura (solo la prima volta può servire un po\')…')}});
-let text='';try{await w.setParameters({tessedit_pageseg_mode:'6',preserve_interword_spaces:'1'});text=(await w.recognize(c)).data.text}finally{try{await w.terminate()}catch(e){}}
+let text='';try{await w.setParameters({tessedit_pageseg_mode:'6',preserve_interword_spaces:'1'});
+const sc=async cv=>{const t=(await w.recognize(smallC(cv,1100))).data.text||'';return(t.toLowerCase().match(/descrizion|fattura|totale|importo|prezzo|quantit|pagamento|consegna|articolo|numero|codice|imponibile|aliquota|pezzi|sconto|unitari|documento|trasporto|cliente|\\bdata\\b|\\biva\\b|colli|agente|ordine|merce|cessionario|destinatario|fornitore|scadenza|\\bdel\\b|\\bper\\b|\\bcon\\b|\\bdi\\b/g)||[]).length};
+try{setFm('Controllo l\'orientamento della foto…');const s0=await sc(c);if(s0<8){let best=0,bs=s0;for(const dg of[90,270,180]){const sr=await sc(rotC(c,dg));if(sr>bs){bs=sr;best=dg}}if(best&&bs>s0+2)c=rotC(c,best)}}catch(e){}
+try{noLines(c)}catch(e){}
+setFm('Leggo la foto…');text=(await w.recognize(c)).data.text}finally{try{await w.terminate()}catch(e){}}
+
 const r=normF(parseOcr(text));r.src='ocr';r.testo=text.trim();r.img=pv;return r}
 async function readImg(f){return [await ocrImg(f)]}
 async function loadFatt(files){const msgs=[];fmsg='Leggo i file…';R();
 for(const f of Array.from(files)){const n=f.name.toLowerCase();try{let arr=[];
 if(n.endsWith('.zip')){for(const en of await readZip(f)){try{const r=await readXml(new Blob([en.data]),/\.p7m$/i.test(en.name));r.forEach(x=>x.file=en.name);arr.push(...r)}catch(er){msgs.push(en.name+': non leggibile.')}}}
 else if(n.endsWith('.xml')||n.endsWith('.p7m'))arr=await readXml(f,n.endsWith('.p7m'));
-else if((f.type||'').startsWith('image/')){fmsg='Leggo '+f.name+'…';R();arr=await readImg(f)}
+else if((f.type||'').startsWith('image/')||/\.(jpe?g|png|webp|gif|bmp|heic|heif)$/.test(n)){fmsg='Leggo '+f.name+'…';R();arr=await readImg(f)}
 else if(n.endsWith('.pdf')){msgs.push(f.name+": i PDF non sono supportati, carica l'XML o una foto.");continue}
 else{msgs.push(f.name+': formato non riconosciuto.');continue}
 if(!arr.length)msgs.push(f.name+': nessuna fattura trovata.');arr.forEach(x=>{x.file=x.file||f.name;pend.push(x)})}
-catch(e){msgs.push(f.name+': '+(e.message==='ocrload'?'impossibile scaricare il lettore di testo: controlla la connessione e riprova, oppure usa l\'XML.':e.message==='imgbad'?'immagine non leggibile.':e.message==='zipdec'?"questo browser non riesce ad aprire gli ZIP: scompattalo e carica i file XML.":e.code==='not_granted'?'autorizzazione negata.':'impossibile leggere il file.'))}}
+catch(e){msgs.push(f.name+': '+(e.message==='ocrload'?'impossibile scaricare il lettore di testo: controlla la connessione e riprova, oppure usa l\'XML.':e.message==='imgbad'?(/heic|heif/.test(n)||/heic|heif/.test(f.type||'')?'formato HEIC non supportato: sul telefono scatta in JPEG (Impostazioni fotocamera → Più compatibile) oppure fai uno screenshot della foto.':'immagine non leggibile.'):e.message==='zipdec'?"questo browser non riesce ad aprire gli ZIP: scompattalo e carica i file XML.":e.code==='not_granted'?'autorizzazione negata.':'errore nella lettura ('+String((e&&(e.message||e.name))||e||'sconosciuto').slice(0,120)+').'))}}
 fmsg=msgs.join(' · ')||('Lette '+pend.length+' fatture: verifica i dati e salva.');R()}
 function saveFatt(k){const p=pend[k];const go=()=>{pushF({id:'f'+Date.now()+k,fornitore:p.fornitore,piva:p.piva||'',numero:p.numero,data:p.data,righe:p.righe,totale:p.totale||Math.round(p.righe.reduce((s,r)=>s+(+r.tot||0)*(1+(+r.iva||0)/100),0)*100)/100,file:p.file||''});pend.splice(k,1);R()};
 if(!p.fornitore.trim())return note('Scrivi il nome del fornitore.');if(isDup(p))ask('Esiste già una fattura con lo stesso fornitore, numero e data. Salvarla comunque?',go);else go()}
