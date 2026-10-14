@@ -330,18 +330,32 @@ i.price=nw;if([4,5,10,22].includes(+r.iva))i.iva=+r.iva;if(f.data)i.fd=f.data})}
 function mCell(f,r,j){const m=r.m;if(!m)return'<span class="mu">–</span>';const i=m.ing?ing(m.ing):null,nm=i?esc(i.name):'';
 if(m.st==='ok')return`<span class="w">🧾 ${nm}: ${m.old==null?'':eur(m.old)+' → '}${eur(m.nw)}</span>`;
 if(m.st==='same')return`<span class="mu">✓ ${nm} (prezzo invariato)</span>`;
-if(m.st==='skip')return`<span class="w">⚠ ${nm}: non aggiornato (${esc(m.why)})</span>`;
-return`<span class="w">non riconosciuto</span> <button class="b" onclick="linkRow('${f.id}',${j})">Abbina</button>`}
+if(m.st==='skip')return`<span class="w">⚠ ${nm}: non aggiornato (${esc(m.why)})</span> <button class="b" onclick="newIngRow('${f.id}',${j})">+ Nuovo ingrediente</button>`;
+return`<span class="w">non riconosciuto</span> <button class="b" onclick="linkRow('${f.id}',${j})">Abbina</button> <button class="b" onclick="newIngRow('${f.id}',${j})">+ Nuovo ingrediente</button>`}
 function fSum(f){const a=f.righe.filter(r=>r.m&&r.m.st==='ok').length,b=f.righe.filter(r=>r.m&&(r.m.st==='nomatch'||r.m.st==='skip')).length;return(a?' <span class="w">🧾 '+a+' prezzi aggiornati</span>':'')+(b?' <span class="mu">'+b+' da abbinare</span>':'')}
 function pushF(o){S.fatt.push(o);applyFatt(o)}
 function reapplyF(id){const f=S.fatt.find(x=>x.id===id);if(f){applyFatt(f);R()}}
 function linkRow(fid,j){const f=S.fatt.find(x=>x.id===fid);if(!f)return;const r=f.righe[j];
 const o=dlg('<b>Abbina «'+esc(r.d)+'» a un ingrediente</b><p class="mu">La prossima volta questa voce verrà riconosciuta da sola.</p><select id="lk" style="width:100%;margin-bottom:10px">'+S.ing.filter(i=>!i.auto).sort((a,b)=>a.name.localeCompare(b.name)).map(i=>'<option value="'+i.id+'">'+esc(i.name)+'</option>').join('')+'</select><div class="row"><button class="b" id="dy">Abbina</button><button class="b" id="dn">Annulla</button></div>');
 o.querySelector('#dn').onclick=()=>o.remove();o.querySelector('#dy').onclick=()=>{const id=o.querySelector('#lk').value;o.remove();S.alias=S.alias||{};const k=normKey(r.d);if(k)S.alias[k]=id;applyFatt(f);R()}}
+
+function newIngRow(fid,j){const f=S.fatt.find(x=>x.id===fid);if(!f)return;const r=f.righe[j];
+const nm=cap(String(r.d||'').replace(/\s+/g,' ').trim().toLowerCase());
+const g=packG(r.d),u0=/^(kg|kgm|g|gr)$/i.test(String(r.u||'').trim())||g?'kg':'pz';
+const tmp={unit:u0};const rp=rowPrice(tmp,r);const p0=rp.pu?Math.round(rp.pu*10000)/10000:'';
+const o=dlg('<b>Nuovo ingrediente dalla fattura</b><p class="mu">Riga: «'+esc(r.d)+'»</p><label>Nome<input id="ni_n" value="'+esc(nm)+'" style="width:100%;box-sizing:border-box"></label><div class="row" style="margin-top:8px"><label>Unità<select id="ni_u"><option value="kg" '+(u0==='kg'?'selected':'')+'>€/kg</option><option value="pz" '+(u0==='pz'?'selected':'')+'>€/pz</option><option value="conf">€/confezione</option></select></label><label>Prezzo (IVA esclusa)<input id="ni_p" type="number" step="0.01" min="0" value="'+p0+'" style="width:100px"></label><label>IVA<select id="ni_i">'+ivaOpt(r.iva||10)+'</select></label><label id="ni_cl" style="display:none">Peso conf. (g)<input id="ni_c" type="number" min="1" value="'+(g||'')+'" style="width:80px"></label></div><p class="mu">Il prezzo proposto è quello della fattura: correggilo se serve (se l\'unità cambia, ricalcola tu il prezzo).</p><div class="row"><button class="b" id="dy">Crea ingrediente</button><button class="b" id="dn">Annulla</button></div>');
+const us=o.querySelector('#ni_u');us.onchange=()=>{o.querySelector('#ni_cl').style.display=us.value==='conf'?'':'none'};
+o.querySelector('#dn').onclick=()=>o.remove();
+o.querySelector('#dy').onclick=()=>{const n=o.querySelector('#ni_n').value.trim();if(!n)return;const pv=o.querySelector('#ni_p').value,price=pv===''?null:+pv,unit=us.value,iva=+o.querySelector('#ni_i').value;
+let i=S.ing.find(x=>!x.auto&&x.name.trim().toLowerCase()===n.toLowerCase());
+if(i){if(price!=null){i.price=price}}else{i={id:'i'+Date.now(),name:cap(n),price,unit,iva};if(unit==='conf'){const c=+o.querySelector('#ni_c').value;if(c>0)i.conf=c}S.ing.push(i)}
+const old=null;if(price!=null){i.fa={fid:f.id,forn:f.fornitore,num:f.numero,data:f.data,old,oldIva:null,nw:price,ok:false,nuovo:true};if(f.data)i.fd=f.data}
+S.alias=S.alias||{};const k=normKey(r.d);if(k)S.alias[k]=i.id;r.m={st:'ok',ing:i.id,old,nw:price};
+o.remove();applyFatt(f);R()}}
 function fattOk(id){const i=ing(id);if(i&&i.fa){i.fa.ok=true}R()}
 function fattUndo(id){const i=ing(id);if(!i||!i.fa)return;ask('Tornare al prezzo precedente ('+(i.fa.old==null?'nessuno':eur(i.fa.old))+')?',()=>{i.price=i.fa.old;if(i.fa.oldIva!=null)i.iva=i.fa.oldIva;i.fa=null;i.fd=null;R()})}
 function fattOkAll(){S.ing.forEach(i=>{if(i.fa)i.fa.ok=true});R()}
-const faBox=i=>{if(!i.fa||i.fa.ok)return'';const a=i.fa;return`<div class="w" style="margin-top:4px">🧾 Aggiornato da fattura: ${a.old==null?'nuovo prezzo':eur(a.old)+' → '}<b>${eur(a.nw)}</b> · ${esc(a.forn)} n° ${esc(a.num)} (${dIt(a.data)})<div class="row" style="margin-top:4px"><button class="b" onclick="fattOk('${i.id}')">✓ Va bene</button><button class="b" onclick="fattUndo('${i.id}')">↩ Ripristina</button></div></div>`};
+const faBox=i=>{if(!i.fa||i.fa.ok)return'';const a=i.fa;return`<div class="w" style="margin-top:4px">🧾 Aggiornato da fattura: ${a.nuovo?'nuovo ingrediente da fattura, prezzo ':a.old==null?'nuovo prezzo':eur(a.old)+' → '}<b>${eur(a.nw)}</b> · ${esc(a.forn)} n° ${esc(a.num)} (${dIt(a.data)})<div class="row" style="margin-top:4px"><button class="b" onclick="fattOk('${i.id}')">✓ Va bene</button><button class="b" onclick="fattUndo('${i.id}')">↩ Ripristina</button></div></div>`};
 
 const dIt=d=>/^\d{4}-\d{2}-\d{2}/.test(d||'')?d.slice(8,10)+'/'+d.slice(5,7)+'/'+d.slice(0,4):(d||'');
 const num=v=>{const n=parseFloat(String(v).replace(',','.'));return isFinite(n)?n:0};
