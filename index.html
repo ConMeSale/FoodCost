@@ -30,35 +30,6 @@ label{display:flex;gap:6px;align-items:center}
 <div class="row"><button class="b" id="sbtn" onclick="logout()">Esci</button><span class="mu" id="sst"></span></div>
 <nav id="nav"></nav><div id="v"></div></main>
 <script>
-/* ANTEPRIMA DEMO: nessun server, nessuna password. Dati e risposte finti, solo per vedere le schermate. */
-(function(){
-const mode=(location.hash||'#supervisore').slice(1);
-try{localStorage.setItem('fcs_auth',JSON.stringify({token:'T',refresh:'R',exp:Date.now()+36e5,email:'demo@demo.it',uid:'u1'}));localStorage.setItem('fcs_uid','u1')}catch(e){}
-const d=(n)=>{const x=new Date();x.setDate(x.getDate()+n);return x.toISOString().slice(0,10)};
-const ME={supervisore:{role:'supervisor',enabled:true,nome:'Tu',perms:{},piano:'omaggio'},
-ristorante:{role:'user',enabled:true,nome:'Pizzeria Demo',perms:{},piano:'omaggio',scade:null,giorni:null,scaduto:false},
-scadenza:{role:'user',enabled:true,nome:'Pizzeria Demo',perms:{},piano:'mensile',importo:29,scade:d(3),pagato_il:d(-27),giorni:3,scaduto:false},
-scaduto:{role:'user',enabled:true,nome:'Pizzeria Demo',perms:{},piano:'annuale',importo:290,scade:d(-12),pagato_il:d(-377),giorni:-12,scaduto:true}}[mode]||{};
-const ABB={prezzo_mensile:'29',prezzo_annuale:'290',link_mensile:'https://esempio.it/paga-mensile',link_annuale:'https://esempio.it/paga-annuale',info:'Oppure bonifico a: Nome Cognome\nIBAN IT00 X000 0000 0000 0000 0000 000\nCausale: Food Cost + nome ristorante'};
-const ADM=[{uid:'u1',email:'demo@demo.it',nome:'Tu (supervisore)',citta:'',role:'supervisor',enabled:true,perms:{},piatti:0,fatture:0,fatturato_mese:0,piano:'omaggio',last_seen:new Date().toISOString()},
-{uid:'u2',email:'pizzeria@demo.it',nome:'Pizzeria Da Mario',citta:'Leno',role:'user',enabled:true,perms:{},piatti:24,fatture:6,fatturato_mese:8420,piano:'omaggio',last_seen:new Date().toISOString()},
-{uid:'u3',email:'trattoria@demo.it',nome:'Trattoria Il Borgo',citta:'Brescia',role:'user',enabled:true,perms:{},piatti:41,fatture:12,fatturato_mese:15200,piano:'mensile',importo:29,scade:d(3),pagato_il:d(-27),last_seen:new Date().toISOString()},
-{uid:'u4',email:'sushi@demo.it',nome:'Sushi Kaze',citta:'Verona',role:'user',enabled:true,perms:{},piatti:30,fatture:3,fatturato_mese:11100,piano:'annuale',importo:290,scade:d(200),pagato_il:d(-165),last_seen:new Date().toISOString()},
-{uid:'u5',email:'osteria@demo.it',nome:'Osteria Vecchia',citta:'Milano',role:'user',enabled:true,perms:{},piatti:12,fatture:1,fatturato_mese:2300,piano:'mensile',importo:29,scade:d(-12),pagato_il:d(-42),last_seen:null}];
-let RST={u2:{data:{ing:[{id:'a1',name:'Farina (dati di Mario)',price:1,unit:'kg'}],dishes:[]},version:1}};
-let PWD={u2:{uid:'u2',pw:'Mario2024!x',at:new Date().toISOString()}};
-const rf=window.fetch;
-window.fetch=function(u,o){u=String(u);const J=b=>Promise.resolve(new Response(JSON.stringify(b),{status:200,headers:{'Content-Type':'application/json'}}));
-if(u.includes('/rpc/fc_get_as')){const b=JSON.parse(o.body);return J(RST[b.p_uid]||null)}
-if(u.includes('/rpc/fc_set_as')){const b=JSON.parse(o.body);RST[b.p_uid]={data:b.p_data,version:(b.p_version||0)+1};window.__rst=RST;return J(RST[b.p_uid].version)}
-if(u.includes('/functions/v1/admin-users'))return J({ok:true,uid:'u9'});if(u.includes('/rpc/fc_admin_pw_list'))return J(Object.values(PWD));if(u.includes('/rpc/fc_admin_pw_set')){const b=JSON.parse(o.body);PWD[b.p_uid]={uid:b.p_uid,pw:b.p_pw,at:new Date().toISOString()};return J(1)}
-if(u.includes('/rpc/fc_me'))return J(ME);if(u.includes('/rpc/fc_abb_get'))return J(ABB);if(u.includes('/rpc/fc_admin_list'))return J(ADM);if(u.includes('/rpc/fc_get'))return J(null);
-if(u.includes('/rpc/')||u.includes('/auth/'))return J(u.includes('token')?{access_token:'T',refresh_token:'R',expires_in:3600,user:{id:'u1'}}:1);return rf.apply(this,arguments)};
-addEventListener('DOMContentLoaded',()=>{const b=document.createElement('div');b.style.cssText='position:fixed;left:8px;bottom:8px;z-index:99;background:#222;color:#fff;border-radius:8px;padding:6px 8px;font:12px sans-serif;display:flex;gap:6px;flex-wrap:wrap;max-width:94vw';
-b.innerHTML='<b>DEMO</b>'+[['supervisore','Supervisore'],['ristorante','Ristorante (omaggio)'],['scadenza','In scadenza'],['scaduto','Scaduto']].map(([k,t])=>'<a href="#'+k+'" onclick="setTimeout(()=>location.reload(),50)" style="color:'+(mode===k?'#ffd54a':'#fff')+'">'+t+'</a>').join(' · ');document.body.appendChild(b)})
-})();
-</script>
-<script>
 const IMP=(()=>{try{return JSON.parse(sessionStorage.getItem('fcs_imp')||'null')}catch(e){return null}})(),K=k=>IMP?k+'_i':k;
 const D={"ing": [], "dishes": [], "p": {"useIva": true, "iva": 10, "scarto": 10, "ricarico": 2.5}};let dq='',S=null,view=(()=>{try{return sessionStorage.getItem('fcs_view')||'piatti'}catch(e){return'piatti'}})(),open_=null,q='',onlyMiss=false;
 try{S=JSON.parse(localStorage.getItem(K('fcs1')))}catch(e){}
@@ -777,7 +748,7 @@ return`<input id="dq${d.id}" placeholder="Filtra ingredienti…" value="${esc(dq
 const tgt=id=>id==='imp'?S.imp:dish(id);
 function tog(d,i,on){const x=tgt(d);if(on)x.lines.push({ing:i,qty:0});else x.lines=x.lines.filter(l=>l.ing!==i);R()}
 function setQ(d,i,v){tgt(d).lines.find(l=>l.ing===i).qty=+v;R()}
-const SYNC={url:'https://demo.supabase.co',key:'demo'};
+const SYNC={url:'https://eptteggggbhozaxdmzic.supabase.co',key:'sb_publishable_YwrYkOflmBo9Hyg2bdCykg_BKHDqk_v'};
 const syOn=()=>!!(SYNC.url&&SYNC.key),sy={ver:0,last:'',busy:false,timer:null,msg:'',inb:false,tok:''};
 let ME=null,adm=[],admMsg='',admQ='';
 const isSup=()=>!!(ME&&ME.role==='supervisor'),isAdm=()=>!!(ME&&(ME.role==='supervisor'||ME.role==='minus')),can=k=>isSup()||!!(ME&&ME.role==='minus'&&ME.perms&&ME.perms[k]===true);
