@@ -87,13 +87,13 @@ D('ex_d_insa','Insalata mista','contorni',4,[[ice,80],[pom,80],[car,30],[ol,8]])
 D('ex_d_hamb','Hamburger classico','panini',8.5,[[pbg,1],[bur,150],[ice,20],[pom,30],[ched,20],[ket,10],[may,10]]);
 D('ex_d_frit','Mozzarella sticks con patatine','fritti',5.5,[[mst,120],[pfr,150],[ket,10]]);
 D('ex_d_tira','Tiramisù','altri',5,[[mas,60],[uova,25],[sav,30],[caf,10],[cac,2],[zuc,20]]);
-const z=['luce','gas','affitto','dip','acqua','altro'],v=[250,100,1000,2000,50,100];if(z.every(k=>!+S.p[k])){z.forEach((k,j)=>S.p[k]=v[j]);S.exP=1}
+const z=['luce','dip','gas','affitto','acqua','spazz','altro','ctel','cecom','ccomm','chaccp','ccons','cfatt','cads'],v=[1350,16500,850,3500,140,240,550,60,0,450,45,250,30,400];if(z.every(k=>!+S.p[k])){z.forEach((k,j)=>S.p[k]=v[j]);S.exP=1}
 S.exOn=1;S.exSeen=1}
 function removeExamples(){ask('Cancellare tutti i dati di esempio (pietanze, ingredienti, costi)? I dati che hai inserito tu restano.',()=>{
 S.dishes=S.dishes.filter(d=>!d.ex);const usedI=new Set();S.dishes.forEach(d=>d.lines.forEach(l=>usedI.add(l.ing)));S.imps.forEach(m=>CATS.forEach(([c])=>(m.slots[c]||[]).forEach(s=>{if(s.ing)usedI.add(s.ing)})));
 S.ing=S.ing.filter(i=>!(i.ex&&!usedI.has(i.id)));S.ing.forEach(i=>{if(i.exp){i.price=null;delete i.exp}});S.fmt=S.fmt.filter(f=>!(f.ex&&!S.dishes.some(d=>d.pf===f.id)));
 if(S.exDough){const m=S.imps[0];if(m&&m.slots)CATS.forEach(([c])=>(m.slots[c]||[]).forEach(s=>{if(s.qty)s.qty=0}));delete S.exDough}
-if(S.exP){['luce','gas','affitto','dip','acqua','altro'].forEach(k=>S.p[k]=0);delete S.exP}
+if(S.exP){['luce','dip','gas','affitto','acqua','spazz','altro','ctel','cecom','ccomm','chaccp','ccons','cfatt','cads'].forEach(k=>S.p[k]=0);delete S.exP}
 delete S.exOn;S.exSeen=1;open_=null;R()})}
 const exBanner=()=>S.exOn?'<div class="card" style="background:var(--warn)"><b>📘 Dati di esempio</b><div class="mu">Pietanze, ingredienti e costi qui sotto sono di prova, per mostrarti come si compila: aprili, cambia i numeri e guarda come si aggiornano food cost e margine. Quando sei pronto, cancellali e inserisci i tuoi.</div><button class="b" onclick="removeExamples()">Cancella i dati di esempio</button></div>':'';
 if(S.exNew||(!S.exOn&&!S.exSeen&&!D.ing.length&&S.ing.every(i=>!i.price&&CATS.some(([c,l])=>nmLow(i.name)===l.toLowerCase()))&&!S.dishes.length&&!S.fatt.length&&!Object.keys(S.rev).length&&!S.preps.length)){delete S.exNew;loadExamples()}
