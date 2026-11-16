@@ -9,7 +9,7 @@ body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.4 system-ui,-appl
 main{max-width:980px;margin:0 auto;padding:14px}
 h1{font-size:20px;margin:6px 0 10px}
 .kp{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-top:10px}.kp>div{background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:8px 10px}.kp small{display:block;color:var(--mu);font-size:11px;text-transform:uppercase;letter-spacing:.03em}.kp b{font-size:17px}.kp .sub{color:var(--mu);font-size:11px}
-nav{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+nav{display:flex;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:thin;gap:6px;margin-bottom:12px;padding-bottom:4px}nav button{flex:none;white-space:nowrap}
 nav button,.b{border:1px solid var(--bd);background:var(--card);color:var(--fg);padding:8px 14px;border-radius:8px;cursor:pointer;font:inherit}
 nav button.on{background:var(--ac);color:#fff;border-color:var(--ac)}
 input,select{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--bd);border-radius:6px;padding:6px 8px;max-width:100%}
@@ -126,7 +126,7 @@ const used=id=>S.dishes.filter(d=>d.lines.some(l=>l.ing===id)).length;
 function syncOre(){const p=S.p;if(!p.oreMode){p.oreMode='g';const o=+p.ore||0;p.oreH=Math.floor(o+1e-9);p.oreMin=Math.min(59,Math.round((o-p.oreH)*60))}const t=(+p.oreH||0)+(+p.oreMin||0)/60,g=+p.giorni||0;p.ore=p.oreMode==='g'?t:g>0?(p.oreMode==='s'?t*52/12:t)/g:0}
 function fmtOre(h){let H=Math.floor(h+1e-9),m=Math.round((h-H)*60);if(m>=60){H++;m=0}return H+' h '+String(m).padStart(2,'0')+' min'}
 function R(){const _sk=skSave();syncOre();migImp();syncImps();syncSugi();autoPrices();if(view==='trac'){view='haccp';hsub='trac'}if(view==='admin'&&isAdm()&&Date.now()-admAt>20000){admAt=Date.now();admLoad()}save();CH.find(x=>x[0]==='extra')[1]=S.p.extraName||'Altra piattaforma';try{sessionStorage.setItem('fcs_view',view)}catch(e){}
-document.getElementById('nav').innerHTML=(isAdm()?[['admin',isSup()?'👑 Supervisore':'🛡️ Gestione']]:[]).concat([['piatti','Pietanze'],['haccp','HACCP'],['ing','Ingredienti'],['imp','Impasto'],['rev','Fatturato'],['costi','Costi'],['graf','Grafici'],['fmt','Formati pasta'],['par','Parametri'],['guida','Istruzioni']]).concat(ME&&ME.role==='user'?[['abb','💳 Abbonamento']]:[]).map(([k,t])=>`<button class="${view===k?'on':''}" onclick="view='${k}';R()">${t}</button>`).join('');
+document.getElementById('nav').innerHTML=(isAdm()?[['admin',isSup()?'👑 Supervisore':'🛡️ Gestione']]:[]).concat([['ing','Ingredienti'],['piatti','Pietanze'],['fmt','Formati pasta'],['imp','Impasto'],['rev','Fatturato'],['haccp','HACCP'],['costi','Costi'],['graf','Grafici'],['par','Parametri'],['guida','Istruzioni']]).concat(ME&&ME.role==='user'?[['abb','💳 Abbonamento']]:[]).map(([k,t])=>`<button class="${view===k?'on':''}" onclick="view='${k}';R()">${t}</button>`).join('');
 document.getElementById('v').innerHTML=impBanner()+abbBanner()+exBanner()+(view==='piatti'?pPiatti():view==='haccp'?pHaccp():view==='ing'?pIng():view==='imp'?pImp():view==='rev'?pRev():view==='costi'?pCosti():view==='graf'?pGraf():view==='fmt'?pFmt():view==='fatt'?pFatt():view==='guida'?pGuida():view==='admin'?pAdmin():view==='abb'?pAbb():pPar());fotoHydrate();skRest(_sk)}
 const SEC={};const secOpen=(k,def)=>SEC[k]===undefined?!!def:SEC[k];function secTog(k,cur){const sk=skSave();SEC[k]=!cur;R();skRest(sk)}
 function skSave(){const o={y:window.scrollY,l:{}};document.querySelectorAll('[data-sk]').forEach(e=>o.l[e.dataset.sk]=e.scrollTop);return o}
