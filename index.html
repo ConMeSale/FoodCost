@@ -1,6 +1,7 @@
 <!DOCTYPE html><html lang="it"><head><meta charset="utf-8"><title>Food Cost</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <style>
+#prt{display:none}@media print{body{background:#fff;color:#000}main,#sbtn{display:none!important}#prt{display:block;padding:0}#prt h2{margin:0 0 4px;font-size:18px}#prt .pd{font-size:11px;color:#555;margin-bottom:8px}#prt table{width:100%;border-collapse:collapse;font-size:12px}#prt th,#prt td{border:1px solid #999;padding:3px 6px;text-align:left}#prt th{background:#eee}#prt tr{page-break-inside:avoid}}
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#faf8f5;--fg:#1f1d1a;--mu:#6e6a63;--card:#fff;--bd:#e3ded6;--ac:#c2410c;--ok:#15803d;--bad:#b91c1c;--warn:#fef3c7;--c1:#2563eb;--c2:#d97706;--c3:#7c3aed}
 @media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#171513;--fg:#f0ece6;--mu:#9d978d;--card:#211f1c;--bd:#37332e;--ac:#fb923c;--ok:#4ade80;--bad:#f87171;--warn:#3a3012;--c1:#60a5fa;--c2:#fbbf24;--c3:#a78bfa}}
 :root[data-theme="dark"]{--bg:#171513;--fg:#f0ece6;--mu:#9d978d;--card:#211f1c;--bd:#37332e;--ac:#fb923c;--ok:#4ade80;--bad:#f87171;--warn:#3a3012;--c1:#60a5fa;--c2:#fbbf24;--c3:#a78bfa}
@@ -29,7 +30,7 @@ label{display:flex;gap:6px;align-items:center}
 </style></head><body><main>
 <h1>🍕 Food Cost</h1>
 <div class="row"><button class="b" id="sbtn" onclick="logout()">Esci</button><span class="mu" id="sst"></span></div>
-<nav id="nav"></nav><div id="v"></div></main>
+<nav id="nav"></nav><div id="v"></div></main><div id="prt"></div>
 <script>
 const IMP=(()=>{try{return JSON.parse(sessionStorage.getItem('fcs_imp')||'null')}catch(e){return null}})(),K=k=>IMP?k+'_i':k;
 const D={"ing": [], "dishes": [], "p": {"useIva": true, "iva": 10, "scarto": 10, "ricarico": 2.5}};let dq='',S=null,view=(()=>{try{return sessionStorage.getItem('fcs_view')||'piatti'}catch(e){return'piatti'}})(),open_=null,q='',onlyMiss=false;
@@ -152,7 +153,10 @@ const rows=S.ing.filter(i=>(!q||i.name.toLowerCase().includes(q))&&(!onlyMiss||!
 <td><select onchange="ing('${i.id}').iva=+this.value;R()">${ivaOpt(i.iva)}</select></td><td>${pkg(i)}</td><td>${!i.price?'<span class="w">manca prezzo</span>':i.unit==='conf'&&!+i.conf?'<span class="w">manca peso</span>':i.unit==='pz'?eur(uc(i))+'/pz':fm(uc(i))+' €/g'+(scP(i)?'<div class="mu">con scarto '+scP(i).toFixed(1).replace('.',',')+'%</div>':'')}</td><td class="mu">${used(i.id)} piatti</td><td><button class="x" onclick="delIng('${i.id}')">✕</button></td></tr>`).join('');
 const nfa=S.ing.filter(i=>i.fa&&!i.fa.ok).length;
 return`${nfa?`<div class="card" style="border-color:var(--ac)"><b>🧾 ${nfa} prezzi aggiornati da fatture</b><span class="mu"> — evidenziati in giallo: controlla e premi «Va bene» o «Ripristina».</span> <button class="b" onclick="fattOkAll()">Segna tutti come controllati</button></div>`:''}<div class="row"><input id="s" placeholder="Cerca ingrediente…" value="${esc(q)}" oninput="q=this.value.toLowerCase();R();document.getElementById('s').focus()"><label><input type="checkbox" ${onlyMiss?'checked':''} onchange="onlyMiss=this.checked;R()">Solo senza prezzo (${miss})</label>
-<button class="b" onclick="addIng()">+ Nuovo ingrediente</button></div><div class="card sc"><table><tr><th>Ingrediente</th><th>Prezzo</th><th>Unità</th><th>Peso confezione</th><th>Scarto (g su peso lordo)</th><th>IVA acquisto</th><th>Prezzo al kg (scarto + IVA incl.)</th><th>Costo al g (IVA ${S.p.useIva?'incl.':'escl.'})</th><th></th><th></th></tr>${rows}</table></div>`}
+<button class="b" onclick="addIng()">+ Nuovo ingrediente</button><button class="b" onclick="stampaIng()">🖨️ Stampa tabella</button></div><div class="card sc"><table><tr><th>Ingrediente</th><th>Prezzo</th><th>Unità</th><th>Peso confezione</th><th>Scarto (g su peso lordo)</th><th>IVA acquisto</th><th>Prezzo al kg (scarto + IVA incl.)</th><th>Costo al g (IVA ${S.p.useIva?'incl.':'escl.'})</th><th></th><th></th></tr>${rows}</table></div>`}
+function stampaIng(){const L=S.ing.filter(i=>!i.auto).sort((a,b)=>a.name.localeCompare(b.name)),u={kg:'/kg',pz:'/pz',conf:'/conf.'};
+const r=L.map(i=>{const sc=scP(i);const pk=i.unit==='pz'?(i.price?eur(+i.price*(S.p.useIva?1+(+i.iva||10)/100:1))+'/pz':''):pkg(i);return`<tr><td>${esc(i.name)}</td><td>${i.price?eur(+i.price)+' '+(u[i.unit]||''):'<i>manca prezzo</i>'}</td><td>${i.unit==='conf'&&+i.conf?i.conf+' g':''}</td><td>${sc?sc.toFixed(1).replace('.',',')+'%':''}</td><td>${(+i.iva||10)}%</td><td>${pk}</td></tr>`}).join('');
+const e=document.getElementById('prt');e.innerHTML=`<h2>Ingredienti</h2><div class="pd">Stampato il ${new Date().toLocaleDateString('it-IT')} · ${L.length} ingredienti</div><table><tr><th>Ingrediente</th><th>Prezzo acquisto</th><th>Peso conf.</th><th>Scarto</th><th>IVA</th><th>Prezzo al kg (scarto+IVA)</th></tr>${r}</table>`;window.print()}
 function addIng(){askText('Nome ingrediente',n=>{S.ing.push({id:'i'+Date.now(),name:cap(n),price:null,unit:'kg',iva:10});q='';R()})}
 function delIng(id){const u=used(id);ask(u?`Usato in ${u} piatti: verrà tolto anche da lì. Eliminare?`:'Eliminare?',()=>{S.ing=S.ing.filter(i=>i.id!==id);S.dishes.forEach(d=>d.lines=d.lines.filter(l=>l.ing!==id));R()})}
 const catSelect=d=>`<label>Categoria <select onchange="dish('${d.id}').cat=this.value;pcat=this.value;R()">${PC.map(([k,t])=>`<option value="${k}" ${catOf(d)===k?'selected':''}>${t}</option>`).join('')}</select></label>`;
