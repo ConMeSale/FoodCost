@@ -961,7 +961,7 @@ if(!g('rg_k').checked)return m('Per continuare serve il consenso al trattamento 
 g('rg_b').disabled=true;m('Invio…');
 try{
 const r=await fetch(URL_+'/rest/v1/rpc/fc_app_register',{method:'POST',headers:{'Content-Type':'application/json',apikey:KEY,Authorization:'Bearer '+KEY},body:JSON.stringify({p_nome:n,p_email:e,p_tel:g('rg_t').value,p_locale:g('rg_l').value,p_citta:g('rg_c').value,p_consenso:true,p_lingua:(function(){try{return localStorage.getItem('fc_lang')||'it'}catch(x){return 'it'}})(),p_disp:navigator.userAgent.slice(0,190)})});
-if(!r.ok){const t=await r.text().catch(()=>'');g('rg_b').disabled=false;return m(t.includes('email_non_valida')?'Email non valida.':t.includes('consenso')?'Serve il consenso.':'Registrazione non riuscita. Riprova più tardi.')}
+if(!r.ok){const t=await r.text().catch(()=>'');g('rg_b').disabled=false;return m(t.includes('email_non_valida')?'Email non valida.':t.includes('consenso_mancante')?'Serve il consenso.':(t.includes('PGRST202')||t.includes('Could not find'))?'Il servizio di registrazione non è ancora attivo. Contatta chi ti ha fornito l\'app.':'Registrazione non riuscita (errore '+r.status+'). Riprova più tardi.')}
 try{localStorage.setItem('fca_reg',JSON.stringify({e:e,t:Date.now()}))}catch(x){}
 o.remove();
 }catch(x){g('rg_b').disabled=false;m('Serve la connessione a internet per registrarti. Controlla e riprova.')}
