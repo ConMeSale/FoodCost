@@ -91,19 +91,60 @@ D('ex_d_insa','Insalata mista','contorni',4,[[ice,80],[pom,80],[car,30],[ol,8]])
 D('ex_d_hamb','Hamburger classico','panini',8.5,[[pbg,1],[bur,150],[ice,20],[pom,30],[ched,20],[ket,10],[may,10]]);
 D('ex_d_frit','Mozzarella sticks con patatine','fritti',5.5,[[mst,120],[pfr,150],[ket,10]]);
 D('ex_d_tira','Tiramisù','altri',5,[[mas,60],[uova,25],[sav,30],[caf,10],[cac,2],[zuc,20]]);
+
+// ---- ristorante di prova: altri ingredienti (prezzi indicativi €/kg senza IVA) e altri piatti, 3 per ogni categoria
+const buf=E('Mozzarella di bufala',12.5),mac=E('Macinato misto manzo e suino',8.5),sed=E('Sedano',2.8),cip=E('Cipolle',0.65),cot=E('Cotoletta di vitello',22),pgr=E('Pangrattato',2.19),
+ sal2=E('Filetto di salmone fresco',17),lim=E('Limoni',2.5),zuc2=E('Zucchine',2),mel=E('Melanzane',1.7),pep2=E('Peperoni',2.5),pia=E('Piadina romagnola al pezzo',0.55,'pz'),
+ squ=E('Squacquerone',9.5),por=E('Porchetta',15),ros2=E('Panino rosetta al pezzo',0.35,'pz'),cal=E('Calamari',12),gam=E('Gamberi',15),sup=E('Supplì surgelato al pezzo',0.6,'pz'),
+ pan=E('Panna fresca',5.5),gel=E('Gelatina in fogli',25),fbo=E('Frutti di bosco surgelati',9),pol=E('Petto di pollo',8.5),mai=E('Mais',3.5);
+D('ex_d_capr','Caprese di bufala','antipasti',9,[[buf,125],[pom,100],[bas,3],[ol,8]]);
+D('ex_d_ragu','Ragù alla bolognese','sughi',0,[[mac,500],[polpa,300],[car,60],[sed,60],[cip,80],[ol,25],[sa,6]],{por:120});
+D('ex_d_cotol','Cotoletta alla milanese','secondi',18,[[cot,200],[uova,30],[pgr,50],[bur2,25],[lim,20]]);
+D('ex_d_salm','Salmone al forno con limone','secondi',17,[[sal2,200],[lim,30],[ol,10],[pre,3]]);
+D('ex_d_verd','Verdure grigliate','contorni',5.5,[[zuc2,100],[mel,100],[pep2,80],[ol,10]]);
+D('ex_d_piad','Piadina crudo e squacquerone','panini',8.5,[[pia,1],[cru,60],[squ,60],[ruc,15]]);
+D('ex_d_porc','Panino con porchetta','panini',7,[[ros2,1],[por,100]]);
+D('ex_d_calam','Frittura di calamari e gamberi','fritti',14,[[cal,120],[gam,80],[fa,20],[ol,40],[lim,15]]);
+D('ex_d_supp','Supplì (2 pezzi)','fritti',5,[[sup,2],[ol,20]]);
+D('ex_d_pann','Panna cotta ai frutti di bosco','altri',5.5,[[pan,100],[zuc,15],[gel,2],[fbo,40]]);
+D('ex_d_insp','Insalatona di pollo','altri',10,[[pol,120],[ice,100],[pom,60],[mai,30],[gra,15],[ol,10]]);
+if(!S.exY){exYear();S.exY=1}
 if(EXZ.every(k=>!+S.p[k])){exCosts()}
 S.exOn=1;S.exSeen=1}
+// Un anno di fatturato, vendite per piatto e spese per fornitore (dati inventati ma coerenti). Si cancellano con "Cancella i dati di esempio".
+function exYear(){const pad=n=>String(n).padStart(2,'0'),ymd2=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+let seed=20261123;const rnd=()=>{seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
+const W={ex_d_marg:14,ex_d_diav:9,ex_d_bosc:6,ex_d_brus:5,ex_d_tagl:3,ex_d_capr:3,ex_d_carb:8,ex_d_pens:5,ex_d_spags:7,ex_d_tagi:3,ex_d_cotol:4,ex_d_salm:3,ex_d_pata:6,ex_d_insa:5,ex_d_verd:3,ex_d_hamb:5,ex_d_piad:4,ex_d_porc:3,ex_d_frit:3,ex_d_calam:4,ex_d_supp:3,ex_d_tira:6,ex_d_pann:3,ex_d_insp:2};
+const ids=Object.keys(W).filter(id=>S.dishes.some(d=>d.id===id)),sw=ids.reduce((s,i)=>s+W[i],0),price=id=>+(S.dishes.find(d=>d.id===id)||{}).sale||0;
+const SEAS=[.70,.72,.85,.95,1.05,1.25,1.45,1.55,1.15,.95,.80,1.0],WD=[1.25,0,.7,.75,.85,1.15,1.45];
+const end=new Date();end.setDate(end.getDate()-1);const days=[],gross={};
+for(let k=364;k>=0;k--){const d=new Date(end);d.setDate(end.getDate()-k);const key=ymd2(d),f=WD[d.getDay()];if(!f)continue;if(S.rev[key]||S.vend[key])continue;
+const cov=Math.round(78*SEAS[d.getMonth()]*f*(0.88+0.24*rnd())),tot=Math.round(cov*2.1),v={};let food=0;
+ids.forEach(id=>{const q=Math.round(tot*W[id]/sw*(0.75+0.5*rnd()));if(q>0){v[id]=q;food+=q*price(id)}});
+const g=food*1.38,r={};[['tavoli',.71],['asporto',.12],['glovo',.09],['justeat',.05],['tel',.03]].forEach(([c,p])=>{const a=Math.round(g*p*(0.9+0.2*rnd()));if(a>0)r[c]=a});
+S.rev[key]=r;S.vend[key]=v;days.push(key);gross[key]=Object.values(r).reduce((a,b)=>a+b,0)}
+S.exDays=days;
+const SUP=[['Macelleria Bianchi',10,.24,[2,5]],['Pescheria Adriatica',10,.19,[3,5]],['Ortofrutta Il Mercato',10,.16,[2,4,6]],['Caseificio e salumi Rossi',10,.13,[3]],['Panificio Il Forno',4,.08,[2,5]],['Bevande Romagna Distribuzione',22,.17,[3]],['Detergenti e monouso',22,.03,[4]]];
+const keys=Object.keys(gross),avg=keys.length?keys.reduce((s,k)=>s+gross[k],0)/keys.length:1500;let n=0;const sp=[];
+for(let k=364;k>=0;k--){const d=new Date(end);d.setDate(end.getDate()-k);SUP.forEach(([f,v,sh,dw])=>{if(!dw.includes(d.getDay()))return;
+let s7=0,c=0;for(let j=1;j<=7;j++){const p=new Date(d);p.setDate(d.getDate()-j);const g=gross[ymd2(p)];if(g){s7+=g;c++}}
+const w=c?s7/c*6:avg*6,t=Math.round(w*0.29*sh/dw.length*(0.88+0.24*rnd())*100)/100;
+if(t>0)sp.push({id:'ex_sp_'+(n++),d:ymd2(d),f,t,v,n:''})})}
+S.spese=(S.spese||[]).concat(sp)}
 const EXZ=['luce','dip','gas','affitto','acqua','spazz','altro','ctel','cecom','ccomm','chaccp','ccons','cfatt','cads'],EXV=[1350,16500,850,3500,140,240,550,60,0,450,45,250,30,400];
 function exCosts(){EXZ.forEach((k,j)=>{S.p[k]=EXV[j];delete S.p[k+'A'];delete S.p[k+'I']});S.exP=1}
 function exCostsAsk(){ask('Inserire i costi mensili di esempio (totale 24.365 €)? Sostituiscono i valori attuali dei costi mensili.',()=>{exCosts();R()})}
 (function(){const o={luce:250,gas:100,affitto:1000,dip:2000,acqua:50,altro:100};if(S.exP&&Object.keys(o).every(k=>+S.p[k]===o[k])&&!+S.p.ctel&&!+S.p.ccomm)exCosts()})();
-function removeExamples(){ask('Cancellare tutti i dati di esempio (pietanze, ingredienti, costi)? I dati che hai inserito tu restano.',()=>{
+if(S.exOn&&!S.exY){delete S.exOn;loadExamples()}
+function removeExamples(){ask('Cancellare tutti i dati di esempio (pietanze, ingredienti, fatturato e spese di prova)? I dati che hai inserito tu restano.',()=>{
 S.dishes=S.dishes.filter(d=>!d.ex);const usedI=new Set();S.dishes.forEach(d=>d.lines.forEach(l=>usedI.add(l.ing)));S.imps.forEach(m=>CATS.forEach(([c])=>(m.slots[c]||[]).forEach(s=>{if(s.ing)usedI.add(s.ing)})));
 S.ing=S.ing.filter(i=>!(i.ex&&!usedI.has(i.id)));S.ing.forEach(i=>{if(i.exp){i.price=null;delete i.exp}});S.fmt=S.fmt.filter(f=>!(f.ex&&!S.dishes.some(d=>d.pf===f.id)));
 if(S.exDough){const m=S.imps[0];if(m&&m.slots)CATS.forEach(([c])=>(m.slots[c]||[]).forEach(s=>{if(s.qty)s.qty=0}));delete S.exDough}
 if(S.exP){EXZ.forEach(k=>S.p[k]=0);delete S.exP}
+if(S.exDays){S.exDays.forEach(k=>{delete S.rev[k];delete S.vend[k]});delete S.exDays}
+S.spese=(S.spese||[]).filter(x=>!String(x.id).startsWith('ex_sp_'));delete S.exY;
 delete S.exOn;S.exSeen=1;open_=null;R()})}
-const exBanner=()=>S.exOn?'<div class="card" style="background:var(--warn)"><b>📘 Dati di esempio</b><div class="mu">Pietanze, ingredienti e costi qui sotto sono di prova, per mostrarti come si compila: aprili, cambia i numeri e guarda come si aggiornano food cost e margine. Quando sei pronto, cancellali e inserisci i tuoi.</div><button class="b" onclick="removeExamples()">Cancella i dati di esempio</button></div>':'';
+const exBanner=()=>S.exOn?'<div class="card" style="background:var(--warn)"><b>📘 Dati di esempio</b><div class="mu">Pietanze, ingredienti, un anno di fatturato e le spese qui sotto sono di prova (un ristorante inventato), per mostrarti come si compila: aprili, cambia i numeri e guarda come si aggiornano food cost e margine. Quando sei pronto, cancellali e inserisci i tuoi.</div><button class="b" onclick="removeExamples()">Cancella i dati di esempio</button></div>':'';
 if(S.exNew||(!S.exOn&&!S.exSeen&&!D.ing.length&&S.ing.every(i=>!i.price&&CATS.some(([c,l])=>nmLow(i.name)===l.toLowerCase()))&&!S.dishes.length&&!S.fatt.length&&!Object.keys(S.rev).length&&!S.preps.length)){delete S.exNew;loadExamples()}
 let curImp=null;const IM=id=>S.imps.find(m=>m.id===id)||S.imps[0];
 const impL=m=>CATS.flatMap(([c])=>m.slots[c]).filter(l=>l.ing);
